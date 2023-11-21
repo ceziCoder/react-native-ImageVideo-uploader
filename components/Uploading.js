@@ -9,48 +9,32 @@ export function Uploading({ image, video, progress }) {
   const [isLoading, setIsLoading] = useState(true);
 
   return (
-    <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+    <View style={{  flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: 'rgba(0, 0, 0, 0.5)', // Przezroczyste tło
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+    }}>
+     
       <Image
         source={require("../assets/l_s.gif")}
         style={{
           width: 250,
-          height: 150,
+          height: 200,
           overflow: "hidden",
           backgroundColor: "#fff",
           overflow: "hidden",
           borderRadius: 20,
         }}
       />
-      <Text style={{color:'#7B1FA2', margin:2, fontWeight: 'bold'}}>{`${progress}%`}</Text>
-      
-      
-      {image && (
-        <Image
-          source={{ uri: image }}
-          style={{
-            width: 100,
-            height: 100,
-            resizeMode: "contain",
-            borderRadius: 6,
-          }}
-        />
-      )}
-      {video && (
-        <Video
-          source={{
-            uri: video,
-          }}
-          videoStyle={{}}
-          rate={1.0}
-          volume={1.0}
-          isMuted={false}
-          resizeMode="contain"
-          // shouldPlay
-          // isLooping
-          style={{ width: 200, height: 200 }}
-          // useNativeControls
-        />
-      )}
+     
+     <Text style={{color:'#7B1FA2', fontWeight: 'bold',position:'absolute',top:420}}>{`${progress}%`}</Text>
+     
+    
     </View>
   );
 }
