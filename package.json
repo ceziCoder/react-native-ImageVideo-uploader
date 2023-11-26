@@ -36,6 +36,7 @@
     "react-native-svg": "13.9.0",
     "react-native-uuid-generator": "^6.1.1",
     "react-native-web": "~0.19.6",
+    "react-scripts": "^4.0.3",
     "uuid": "^9.0.1"
   },
   "devDependencies": {

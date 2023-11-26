@@ -1,5 +1,6 @@
 {
   "expo": {
+    "platforms": ["ios", "android", "web"],
     "owner": "cezicoder",
     "name": "my-app",
     "slug": "my-app",

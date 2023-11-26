@@ -21,6 +21,9 @@ buildscript {
         classpath('com.facebook.react:react-native-gradle-plugin')
     }
 }
+project.ext.react = [
+    enableHermes: true  // <- Dodaj tę linię
+]
 
 allprojects {
     repositories {
