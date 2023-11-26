@@ -295,8 +295,8 @@ export default function Home() {
       <TouchableOpacity
         onPress={pickVideo}
         style={{
-          position: "absolute",
-          bottom: 150,
+          position: "fixed",
+          top: 250,
           right: 30,
           width: 44,
           height: 44,
@@ -311,8 +311,8 @@ export default function Home() {
       <TouchableOpacity
         onPress={pickImage}
         style={{
-          position: "absolute",
-          bottom: 90,
+          position: "fixed",
+          top: 190,
           right: 30,
           width: 44,
           height: 44,
