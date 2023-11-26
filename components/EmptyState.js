@@ -1,7 +1,6 @@
 import { Image, Text, StyleSheet, View, TouchableOpacity } from "react-native";
 import SvgComponent from "../assets/svg";
-import { LinearGradient } from "expo-linear-gradient";
-import { VibrancyView } from "@react-native-community/blur";
+
 import { BlurView } from "expo-blur";
 
 export default function EmptyState() {

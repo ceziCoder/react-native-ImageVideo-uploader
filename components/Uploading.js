@@ -12,7 +12,7 @@ export function Uploading({ image, video, progress }) {
     <View style={{  flex: 1,
       justifyContent: 'center',
       alignItems: 'center',
-      backgroundColor: 'rgba(0, 0, 0, 0.5)', // Przezroczyste tło
+      backgroundColor: 'rgba(0, 0, 0, 0.5)', 
       position: 'absolute',
       top: 0,
       left: 0,
