@@ -1,5 +1,6 @@
 {
   "expo": {
+    "owner": "cezicoder",
     "name": "my-app",
     "slug": "my-app",
     "version": "1.0.0",
@@ -9,12 +10,8 @@
     "android": {
       "package": "my-app",
       "permissions": ["CAMERA_ROLL", "READ_EXTERNAL_STORAGE", "WRITE_EXTERNAL_STORAGE"]
-    },
-    "extra": {
-      "eas": {
-        "projectId": "d469dbf6-5dfd-487a-ba59-ed11e54513f2"
-      }
     }
+   
 
   }
 }
