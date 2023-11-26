@@ -1,12 +1,8 @@
 import 'dotenv/config';
 
 export default {
-  owner: 'cezicoder',
-  "updates": {
-    "url": "https://u.expo.dev/a4e12a8c-a44c-4146-91c0-895277b2ef2a"
-  },
-  "runtimeVersion": "1.0.0",
-    extra: {
+
+   extra: {
 
         apiKey: process.env.API_KEY,
         authDomain: process.env.AUTH_DOMAIN,
