@@ -30,6 +30,7 @@ import {
 
 import { database, storage } from "../config/firebase";
 import { Video } from "expo-av";
+import imageCompression from 'browser-image-compression'
 
 export default function Home() {
   const [image, setImage] = useState("");
@@ -126,7 +127,7 @@ export default function Home() {
       console.error("Error picking video:", error.message);
     }
   };
-
+/*
   const pickImage = async () => {
     let result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
@@ -142,7 +143,29 @@ export default function Home() {
       await saveRecord("image", result.assets[0].uri);
     }
   };
+*/
+  
+const pickImage = async () => {
+  let result = await ImagePicker.launchImageLibraryAsync({
+    mediaTypes: ImagePicker.MediaTypeOptions.Images,
+    allowsEditing: true,
+    aspect: [4, 3],
+    quality: 1, // Set quality to 1 for no additional compression initially
+  });
 
+  if (!result.canceled) {
+    // Compress the image before uploading
+    const compressedFile = await imageCompression(result.assets[0].file, {
+      maxSizeMB: 1, // Set the desired maximum file size
+    });
+
+    // upload the compressed image
+    await uploadFile(compressedFile, "image");
+    await saveRecord("image", result.assets[0].uri);
+  }
+}
+  
+  
   const uploadFile = async (uri, fileType) => {
     const response = await fetch(uri);
     const blob = await response.blob();
