@@ -107,7 +107,7 @@ export default function Home() {
         mediaTypes: ImagePicker.MediaTypeOptions.Videos,
         allowsEditing: true,
         aspect: [4, 3],
-        quality: 0.5,
+        quality: 0.2,
       });
 
       if (!result.canceled) {
@@ -132,7 +132,7 @@ export default function Home() {
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
       aspect: [4, 3],
-      quality: 0.5,
+      quality: 0.2,
     });
 
     if (!result.canceled) {
