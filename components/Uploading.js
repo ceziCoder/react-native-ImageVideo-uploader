@@ -32,7 +32,7 @@ export function Uploading({ image, video, progress }) {
         }}
       />
      
-     <Text style={{color:'#7B1FA2', fontWeight: 'bold',position:'absolute',top:420}}>{`${progress}%`}</Text>
+     <Text style={{color:'#7B1FA2', fontWeight: 'bold',position:'relative',marginTop:-20}}>{`${progress}%`}</Text>
      
     
     </View>

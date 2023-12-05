@@ -2,18 +2,20 @@ import {
   View,
   Text,
   TouchableOpacity,
+  Pressable,
   Button,
   FlatList,
   Image,
   SafeAreaView,
   StatusBar,
+  Dimensions,
 } from "react-native";
 import EmptyState from "../components/EmptyState";
 import { Uploading } from "../components/Uploading";
 import { Removed } from "../components/Removed";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 import {
   addDoc,
@@ -26,11 +28,14 @@ import {
   increment,
   getDocId,
   getDocs,
+  storageFileId,
+  fileUrl,
 } from "firebase/firestore";
 
 import { database, storage } from "../config/firebase";
 import { Video } from "expo-av";
-import imageCompression from 'browser-image-compression'
+import imageCompression from "browser-image-compression";
+import CryptoJS from "crypto-js";
 
 export default function Home() {
   const [image, setImage] = useState("");
@@ -38,7 +43,6 @@ export default function Home() {
   const [progress, setProgress] = useState(0);
   const [files, setFiles] = useState([]);
   const [showRemovedMessage, setShowRemovedMessage] = useState(false);
-  const [liked, setLiked] = useState(false);
 
   useEffect(() => {
     const unsubscribe = onSnapshot(
@@ -46,9 +50,11 @@ export default function Home() {
       (snapshot) => {
         snapshot.docChanges().forEach((change) => {
           if (change.type === "added") {
-            console.log("New file", change.doc.data());
-
-            setFiles((prevFiles) => [...prevFiles, change.doc.data()]);
+            setFiles((prevFiles) => {
+              const newFiles = [...prevFiles, change.doc.data()];
+              console.log(newFiles);
+              return newFiles;
+            });
           }
         });
       }
@@ -56,6 +62,7 @@ export default function Home() {
     return () => unsubscribe();
   }, []);
 
+  /////////////////////////////////////////
   const removeItem = async (item) => {
     try {
       // prevent null
@@ -101,7 +108,6 @@ export default function Home() {
     return matchingDoc?.id;
   };
 
- 
   const pickVideo = async () => {
     try {
       let result = await ImagePicker.launchImageLibraryAsync({
@@ -127,7 +133,7 @@ export default function Home() {
       console.error("Error picking video:", error.message);
     }
   };
-/*
+
   const pickImage = async () => {
     let result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
@@ -143,67 +149,59 @@ export default function Home() {
       await saveRecord("image", result.assets[0].uri);
     }
   };
-*/
-  
-const pickImage = async () => {
-  let result = await ImagePicker.launchImageLibraryAsync({
-    mediaTypes: ImagePicker.MediaTypeOptions.Images,
-    allowsEditing: true,
-    aspect: [4, 3],
-    quality: 1, // Set quality to 1 for no additional compression initially
-  });
 
-  if (!result.canceled) {
-    // Compress the image before uploading
-    const compressedFile = await imageCompression(result.assets[0].file, {
-      maxSizeMB: 1, // Set the desired maximum file size
-    });
-
-    // upload the compressed image
-    await uploadFile(compressedFile, "image");
-    await saveRecord("image", result.assets[0].uri);
-  }
-}
-  
-  
+  /////////////////////////////////////
   const uploadFile = async (uri, fileType) => {
-    const response = await fetch(uri);
-    const blob = await response.blob();
+    try {
+      const response = await fetch(uri);
+      const blob = await response.blob();
 
-    const storageRef = ref(storage, "Stuff/" + new Date().getTime());
-    const uploadTask = uploadBytesResumable(storageRef, blob);
+      const storageRef = ref(storage, "Stuff/" + new Date().getTime());
+      const uploadTask = uploadBytesResumable(storageRef, blob);
 
-    // listen for changes to upload task
-    uploadTask.on("state_changed", (snapshot) => {
-      const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-      console.log("Upload is " + progress + "% done");
+      uploadTask.on(
+        "state_changed",
+        (snapshot) => {
+          const progress =
+            (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+          console.log("Upload is " + progress + "% done");
 
-      if (progress < 100) {
-        setProgress(progress.toFixed());
-      } else {
-        // seting progress 100% after
-        setProgress(100);
-      }
-    }),
-      (error) => {
-        console.log(error);
-      },
-      () => {
-        getDownloadURL(uploadTask.snapshot.ref).then(async (downloadURL) => {
+          if (progress < 100) {
+            setProgress(progress.toFixed());
+          } else {
+            setProgress(100);
+          }
+        },
+        (error) => {
+          console.log(error);
+        },
+        async () => {
+          const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
           console.log("File available at", downloadURL);
 
           setImage("");
           setVideo("");
-        });
-      };
+
+          // Po zakończeniu przesyłania pliku, zapisz jedynie odnośnik do pliku w Firestore
+          saveRecord(fileType, downloadURL);
+        }
+      );
+    } catch (error) {
+      console.error("Error uploading file:", error);
+    }
+  };
+
+  const shortenUrl = (url) => {
+    const hash = CryptoJS.SHA256(url);
+    console.log("Hash:", hash);
+    return hash.toString(CryptoJS.enc.Hex).substring(0, 10); // cut to 10
   };
 
   const saveRecord = async (
     fileType,
     url,
     docId = new Date().getTime(),
-    createdAt = new Date().toISOString(),
-    
+    createdAt = new Date().toISOString()
   ) => {
     try {
       console.log("Trying to save record...");
@@ -211,12 +209,15 @@ const pickImage = async () => {
         throw new Error("URL is undefined");
       }
       const simplifiedFileType = fileType.toString();
+
+     // const shortenedUrl = shortenUrl(url);
+     // console.log("Shortened URL:", shortenedUrl);
       const docRef = await addDoc(collection(database, "files"), {
         fileType: simplifiedFileType,
         url,
         createdAt,
-      
-        docId
+
+        docId,
       });
       console.log("document saved correctly", docRef.id);
     } catch (e) {
@@ -224,11 +225,8 @@ const pickImage = async () => {
     }
   };
 
-
-
-
   return (
-    <View style={{ flex: 1, marginTop: 2 }}>
+    <View style={{ flex: 1, marginTop: 2, width: "100%", height: "100%" }}>
       <SafeAreaView
         style={{ flex: 1, marginTop: StatusBar.currentHeight || 0 }}
       >
@@ -236,21 +234,27 @@ const pickImage = async () => {
           data={files}
           keyExtractor={(item) => item.url}
           renderItem={({ item }) => (
-            <View style={{ flex: 1, margin: 3 }}>
+           
+            <View style={{ flex: 1, margin: 0, padding: 30 }} >
+              
               {item.fileType === "image" ? (
-                <View style={{ position: "relative" }}>
+                <View style={{ position: "relative" }}
+                
+                >
+                  
                   <Image
                     source={{ uri: item.url }}
                     style={{
                       width: "100%",
-                      height: 400,
+                      aspectRatio: 16 / 16,
                       borderRadius: 6,
-                      shadowColor: "#000",
-                    
-                      shadowRadius: 13.16
                     }}
+                   // onLoad={() => console.log("Image loaded:", item.url)}
+                    
+                   // onError={(error) => console.log("Error loading image:", item.url, error)}
                   />
-                  <TouchableOpacity
+                 
+                  <Pressable
                     style={{
                       position: "absolute",
                       top: 0,
@@ -265,8 +269,7 @@ const pickImage = async () => {
                       size={24}
                       color="red"
                     />
-                  </TouchableOpacity>
-               
+                  </Pressable>
                 </View>
               ) : (
                 <View style={{ position: "relative" }}>
@@ -280,7 +283,7 @@ const pickImage = async () => {
                     style={{ width: "100%", height: 200, borderRadius: 6 }}
                     useNativeControls
                   />
-                  <TouchableOpacity
+                  <Pressable
                     style={{
                       position: "absolute",
                       top: 0,
@@ -295,27 +298,53 @@ const pickImage = async () => {
                       size={24}
                       color="red"
                     />
-                  </TouchableOpacity>
+                  </Pressable>
                 </View>
               )}
             </View>
           )}
           numColumns={1}
-          contentContainerStyle={{ gap: 1 }}
+          contentContainerStyle={{ gap: 2 }}
         />
       </SafeAreaView>
+
       {image && progress < 100 && (
         <Uploading
-          style={{ width: "100%", height: "100%" }}
+          style={{
+            width: "100%",
+            height: "100%",
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: "rgba(0, 0, 0, 0.44)",
+            justifyContent: "center",
+            alignItems: "center",
+          }}
           video={video}
           image={image}
           progress={progress}
         />
       )}
       {showRemovedMessage && (
-        <Removed style={{ width: "100%", height: "100%" }} />
+        <Removed
+          style={{
+            width: "100%",
+            height: "100%",
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: "rgba(0, 0, 0, 0.44)",
+            justifyContent: "center",
+            alignItems: "center",
+          }}
+        />
       )}
-      <TouchableOpacity
+
+      <Pressable
         onPress={pickVideo}
         style={{
           position: "fixed",
@@ -330,8 +359,8 @@ const pickImage = async () => {
         }}
       >
         <Ionicons name="videocam" size={24} color="#fff" />
-      </TouchableOpacity>
-      <TouchableOpacity
+      </Pressable>
+      <Pressable
         onPress={pickImage}
         style={{
           position: "fixed",
@@ -346,7 +375,7 @@ const pickImage = async () => {
         }}
       >
         <Ionicons name="image" size={24} color="#fff" />
-      </TouchableOpacity>
+      </Pressable>
     </View>
   );
 }
