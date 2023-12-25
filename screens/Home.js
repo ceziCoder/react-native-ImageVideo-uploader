@@ -9,6 +9,7 @@ import {
   SafeAreaView,
   StatusBar,
   Dimensions,
+  useWindowDimensions,
 } from "react-native";
 import EmptyState from "../components/EmptyState";
 import { Uploading } from "../components/Uploading";
@@ -30,12 +31,17 @@ import {
   getDocs,
   storageFileId,
   fileUrl,
+  
 } from "firebase/firestore";
 
 import { database, storage } from "../config/firebase";
-import { Video } from "expo-av";
+import { Video, ResizeMode } from "expo-av";
 import imageCompression from "browser-image-compression";
 import CryptoJS from "crypto-js";
+import * as React from "react";
+
+//const sizeVideo =
+// width > 200 && height > 200 ? { marginLeft: 400 } : { margin: 0 };
 
 export default function Home() {
   const [image, setImage] = useState("");
@@ -43,6 +49,8 @@ export default function Home() {
   const [progress, setProgress] = useState(0);
   const [files, setFiles] = useState([]);
   const [showRemovedMessage, setShowRemovedMessage] = useState(false);
+  
+  const { width, height } = useWindowDimensions();
 
   useEffect(() => {
     const unsubscribe = onSnapshot(
@@ -112,7 +120,6 @@ export default function Home() {
     try {
       let result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Videos,
-        allowsEditing: true,
         aspect: [4, 3],
         quality: 0.2,
       });
@@ -159,12 +166,18 @@ export default function Home() {
       const storageRef = ref(storage, "Stuff/" + new Date().getTime());
       const uploadTask = uploadBytesResumable(storageRef, blob);
 
+      const arrayBuffer = await blob.arrayBuffer();
+      const uint8Array = new Uint8Array(arrayBuffer)
+      
+
       uploadTask.on(
         "state_changed",
         (snapshot) => {
           const progress =
             (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
           console.log("Upload is " + progress + "% done");
+
+        
 
           if (progress < 100) {
             setProgress(progress.toFixed());
@@ -175,15 +188,17 @@ export default function Home() {
         (error) => {
           console.log(error);
         },
-        async () => {
+        async (snapshot) => {
           const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
           console.log("File available at", downloadURL);
 
           setImage("");
           setVideo("");
 
-          // Po zakończeniu przesyłania pliku, zapisz jedynie odnośnik do pliku w Firestore
-          saveRecord(fileType, downloadURL);
+          const totalBytes = snapshot.totalBytes
+          const fileSize = blob.size
+          // save link 
+          saveRecord(fileType, downloadURL, fileSize, totalBytes);
         }
       );
     } catch (error) {
@@ -191,15 +206,20 @@ export default function Home() {
     }
   };
 
+
+  ///////////   waithing for  use ?? /////////////
   const shortenUrl = (url) => {
     const hash = CryptoJS.SHA256(url);
     console.log("Hash:", hash);
     return hash.toString(CryptoJS.enc.Hex).substring(0, 10); // cut to 10
   };
+//////////////////////////////////////////////////
 
+  
   const saveRecord = async (
     fileType,
     url,
+    
     docId = new Date().getTime(),
     createdAt = new Date().toISOString()
   ) => {
@@ -209,106 +229,108 @@ export default function Home() {
         throw new Error("URL is undefined");
       }
       const simplifiedFileType = fileType.toString();
-
-     // const shortenedUrl = shortenUrl(url);
-     // console.log("Shortened URL:", shortenedUrl);
+      
+     
       const docRef = await addDoc(collection(database, "files"), {
         fileType: simplifiedFileType,
         url,
         createdAt,
-
+        
         docId,
       });
       console.log("document saved correctly", docRef.id);
+     
     } catch (e) {
       console.log(e);
     }
   };
 
   return (
-    <View style={{ flex: 1, marginTop: 2, width: "100%", height: "100%" }}>
-      <SafeAreaView
-        style={{ flex: 1, marginTop: StatusBar.currentHeight || 0 }}
-      >
-        <FlatList
-          data={files}
-          keyExtractor={(item) => item.url}
-          renderItem={({ item }) => (
-           
-            <View style={{ flex: 1, margin: 0, padding: 30 }} >
-              
-              {item.fileType === "image" ? (
-                <View style={{ position: "relative" }}
-                
-                >
-                  
-                  <Image
-                    source={{ uri: item.url }}
-                    style={{
-                      width: "100%",
-                      aspectRatio: 16 / 16,
-                      borderRadius: 6,
-                    }}
-                   // onLoad={() => console.log("Image loaded:", item.url)}
-                    
-                   // onError={(error) => console.log("Error loading image:", item.url, error)}
-                  />
-                 
-                  <Pressable
-                    style={{
-                      position: "absolute",
-                      top: 0,
-                      right: 0,
-                      padding: 10,
-                      zIndex: 1,
-                    }}
-                    onPress={() => removeItem(item)}
-                  >
-                    <Ionicons
-                      name="remove-circle-outline"
-                      size={24}
-                      color="red"
-                    />
-                  </Pressable>
-                </View>
-              ) : (
-                <View style={{ position: "relative" }}>
-                  <Video
-                    source={{ uri: item.url }}
-                    videoStyle={{ borderWidth: 1, borderColor: "red" }}
-                    rate={1.0}
-                    volume={1.0}
-                    isMuted={false}
-                    resizeMode="cover"
-                    style={{ width: "100%", height: 200, borderRadius: 6 }}
-                    useNativeControls
-                  />
-                  <Pressable
-                    style={{
-                      position: "absolute",
-                      top: 0,
-                      right: 0,
-                      padding: 10,
-                      zIndex: 1,
-                    }}
-                    onPress={() => removeItem(item)}
-                  >
-                    <Ionicons
-                      name="remove-circle-outline"
-                      size={24}
-                      color="red"
-                    />
-                  </Pressable>
-                </View>
-              )}
-            </View>
-          )}
-          numColumns={1}
-          contentContainerStyle={{ gap: 2 }}
-        />
-      </SafeAreaView>
+    <View
+      style={{
+        flex: 1,
+        padding: 10,
+        borderRadius: 10
+      }}
+    >
+      <FlatList
+        data={files}
+        keyExtractor={(item) => item.url + item.fileType}
+        renderItem={({ item }) => {
+          if (item.fileType === "image") {
+            return (
+              <View>
+                <Image
+                  source={{ uri: item.url }}
+                  style={{
+                    width: width,
+                    height: 450,
+                    borderRadius: 10,
+                    margin:10
+                  }}
 
-      {image && progress < 100 && (
+                  // onLoad={() => console.log("Image loaded:", item.url)}
+
+                  // onError={(error) => console.log("Error loading image:", item.url, error)}
+                />
+                <Pressable
+                  style={{
+                    position: "absolute",
+                    top: 0,
+                    right: 0,
+                    padding: 10,
+                    zIndex: 1,
+                  }}
+                  onPress={() => removeItem(item)}
+                >
+                  <Ionicons
+                    name="remove-circle-outline"
+                    size={40}
+                    color="red"
+                  />
+                </Pressable>
+              </View>
+            );
+          } else {
+            return (
+              <View style={{ flex: 1 }}>
+                <Video
+                  source={{ uri: item.url }}
+                  rate={1.0}
+                  volume={1.0}
+                  isMuted={false}
+                  //resizeMode="cover"
+                  shouldPlay={false}
+                  useNativeControls
+                  resizeMode="cover"
+                  // isLooping
+                  style={{ width: "100%", height: (width * 9) / 16 }}
+                />
+                <Pressable
+                  style={{
+                    position: "absolute",
+                    top: 0,
+                    right: 0,
+                    padding: 10,
+                    zIndex: 1,
+                  }}
+                  onPress={() => removeItem(item)}
+                >
+                  <Ionicons
+                    name="remove-circle-outline"
+                    size={40}
+                    color="red"
+                  />
+                </Pressable>
+              </View>
+            );
+          }
+        }}
+        numColumns={1}
+        contentContainerStyle={{ gap: 4 }}
+        // columnWrapperStyle={{ gap: 2 }}
+      />
+      {image  && progress < 100 && (
         <Uploading
           style={{
             width: "100%",
@@ -379,3 +401,9 @@ export default function Home() {
     </View>
   );
 }
+
+/*
+
+
+
+                  */

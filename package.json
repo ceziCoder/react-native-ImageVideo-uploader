@@ -38,12 +38,21 @@
     "react-native-shadow-2": "^7.0.8",
     "react-native-svg": "13.9.0",
     "react-native-uuid-generator": "^6.1.1",
+    "react-native-vector-icons": "^10.0.2",
+    "react-native-video": "^2.3.1",
+    "react-native-video-controls": "^2.8.1",
+    "react-native-video-player": "^0.14.0",
     "react-native-web": "~0.19.6",
+    "react-native-web-webview": "^1.0.2",
+    "react-native-webview": "13.2.2",
+    "react-native-youtube": "^2.0.2",
+    "react-native-youtube-iframe": "^2.3.0",
     "react-scripts": "^4.0.3",
     "uuid": "^9.0.1"
   },
   "devDependencies": {
-    "@babel/core": "^7.20.0"
+    "@babel/core": "^7.20.0",
+    "html-loader": "^4.2.0"
   },
   "private": true
 }

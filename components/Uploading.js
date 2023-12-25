@@ -27,7 +27,7 @@ export function Uploading({ image, video, progress }) {
           height: 200,
           overflow: "hidden",
           backgroundColor: "#fff",
-          overflow: "hidden",
+        
           borderRadius: 20,
         }}
       />
